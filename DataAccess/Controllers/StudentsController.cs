@@ -33,6 +33,7 @@ namespace DataAccess.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
+        [Route("GetAllStudent")]
         [ProducesResponseType(typeof(IEnumerable<StudentViewModel>),(int) HttpStatusCode.OK)]
         [ProducesResponseType((int) HttpStatusCode.BadRequest)]
         public async Task<ActionResult<IEnumerable<StudentViewModel>>> GetAllStudentAsync()
@@ -44,6 +45,53 @@ namespace DataAccess.Controllers
                 return BadRequest("Invalid get all student");
             }
             return Ok(studentViewModel);
+        }
+
+        [HttpGet]
+        [Route("Details")]
+        [ProducesResponseType(typeof(IEnumerable<Student>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult<IEnumerable<Student>>> Details(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var student = await _context.Students
+                .Include(s => s.Enrollments)
+                .ThenInclude(e => e.Course)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.ID == id);
+            
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(student);
+        }
+
+        [HttpPost]
+        [Route("Create")]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType(typeof(Student), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<Student>> Create([FromBody] Student student)
+        {
+            try
+            {
+                if (student != null)
+                {
+                    _context.Add(student);
+                    await _context.SaveChangesAsync();
+                    return Ok(student);
+                }
+                return BadRequest();
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Invalid create student",e);
+            }
         }
     }
 }
